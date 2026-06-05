@@ -13,14 +13,35 @@ jobs:
       - name: Configure SSE build
         run: cmake -G "Visual Studio 17 2022" --preset=x64-release-windows-sse -B build-sse
 
-      - name: Build Alice
-        run: cmake --build build-sse --config Release --parallel --target Alice
+      - name: Build Alice and Launcher
+        run: |
+          cmake --build build-sse --config Release --parallel --target Alice
+          cmake --build build-sse --config Release --parallel --target launch_alice
 
       - name: Package
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
+
+          Write-Host "Searching build outputs..."
+          Get-ChildItem -Path build-sse -Recurse -Filter *.exe | Select-Object FullName
+
+          $alice = Get-ChildItem -Path build-sse -Recurse -Filter Alice.exe | Select-Object -First 1
+          $launcher = Get-ChildItem -Path build-sse -Recurse -Filter launch_alice.exe | Select-Object -First 1
+
+          if (-not $alice) {
+            Write-Host "Alice.exe not found."
+            exit 1
+          }
+
+          if (-not $launcher) {
+            Write-Host "launch_alice.exe not found."
+            exit 1
+          }
+
           New-Item -ItemType Directory -Force dist
-          Copy-Item build-sse\Release\Alice.exe dist\AliceSSE.exe
+          Copy-Item $alice.FullName dist\AliceSSE.exe
+          Copy-Item $launcher.FullName dist\launch_alice.exe
           Copy-Item assets dist\assets -Recurse
 
       - name: Upload artifact
