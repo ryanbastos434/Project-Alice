@@ -1,0 +1,30 @@
+name: Windows SSE build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure SSE build
+        run: cmake -G "Visual Studio 17 2022" --preset=x64-release-windows-sse -B build-sse
+
+      - name: Build Alice
+        run: cmake --build build-sse --config Release --parallel --target Alice
+
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist
+          Copy-Item build-sse\Release\Alice.exe dist\AliceSSE.exe
+          Copy-Item assets dist\assets -Recurse
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProjectAlice-Windows-SSE
+          path: dist
